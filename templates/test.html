@@ -10,8 +10,12 @@
   <clj>(silly-macro 2)</clj>
 </div>
 
-<clj for="[user users]">
-  <p>({ (:name user) })</p>
+<clj>
+(capture [user users]
+  <p>(:name user)</p>)
 </clj>
+
 </body>
 </html>
+
+
