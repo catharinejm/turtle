@@ -1,7 +1,8 @@
 (ns turtle.core
   (:use net.cgrand.enlive-html
-        [clojure.string :only (join)])
-  (:require [fogus.lexical.chocolate :as lex]))
+        [evalive.core :only (evil)])
+  (:require [clojure.string :as s]
+            [fogus.lexical.chocolate :as lex]))
 
 (def val "Value!")
 (defmacro silly-macro [n]
@@ -20,27 +21,31 @@
   ([html file]
      (render* html (partial spit file))))
 
-(defn- gen-tags [content-seq]
-  )
+(def ^:private turtle-re #"\(\{(.*?)\}\)")
 
 (defn eval-and-replace [{content-seq :content {for-binding :for if-binding :if} :attrs :as tag}]
   (when (seq content-seq)
     (when (and if-binding (eval (read-string if-binding)))
       (eval-and-replace (update-in tag [:attrs] dissoc :if)))
     (if for-binding
-      (let [body content-seq
-            fb-form (read-string for-binding)
-            emissions (doall (eval `(for ~fb-form
-                                      (letfn [(gen-tags# [content-seq#]
-                                                (mapv (fn [node#]
-                                                        (if (map? node#)
-                                                          (update-in node# [:content] gen-tags#)
-                                                          (eval-body# node#)))
-                                                      content-seq#))
-                                              (eval-body# [body-str#]
-                                                body-str#)]
-                                        (gen-tags# '~body)))))]
-        (flatten emissions))
+      (let [bind-form (read-string for-binding)
+            bind-contexts (eval `(for ~(read-string for-binding) (lex/context)))
+            needed-syms (set (filter symbol? (flatten bind-form)))]
+        (letfn [(gen-tags [scope cseq]
+                  (mapv (fn [node]
+                          (if (map? node)
+                            (update-in node [:content] (partial gen-tags scope))
+                            (eval-body scope node)))
+                        cseq))
+                (eval-body [scope body-str]
+                  (s/replace body-str turtle-re
+                             (fn [[_ body]]
+                               (let [forms (read-string body)
+                                     true-scope (select-keys scope
+                                                             (apply (partial conj needed-syms)
+                                                                    (filter symbol? (flatten forms))))]
+                                 (evil true-scope forms)))))]
+          (flatten (mapv #(gen-tags % content-seq) bind-contexts))))
       (let [form (read-string (apply str content-seq))]
         (str (eval form))))))
 

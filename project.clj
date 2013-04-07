@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [enlive "1.1.1"]
+                 [evalive "1.1.0"]
                  [fogus/lexical-chocolate "0.0.1"]]
   :plugins [[lein-swank "LATEST"]]
   :resource-paths ["templates"])
