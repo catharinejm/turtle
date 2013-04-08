@@ -18,9 +18,19 @@
                  symbols)
             symbols)))
 
-(defmacro capture [binds body]
-  `(doall (for [~@binds]
-            ~body)))
+(defn qsym [s]
+  `(quote ~s))
+
+(defmacro cap [env-syms for-binds body]
+  (let [keys (map keyword env-syms)]
+   `(doall (for [~@for-binds]
+             (let [lex# (select-keys (lexical-context) (map (fn [k] `(quote ~(symbol (name k)))) ~env-syms))]
+               (evil lex# ~body))))))
+
+(defn capture [binds body]
+  (let [bind-syms (filter symbol? (flatten binds))
+        body-syms (filter symbol? (flatten body))]
+    (cap (concat bind-syms body-syms) binds body)))
 
 (defn render*
   [html pfn]
