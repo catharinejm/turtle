@@ -21,16 +21,8 @@
 (defn qsym [s]
   `(quote ~s))
 
-(defmacro cap [env-syms for-binds body]
-  (let [keys (map keyword env-syms)]
-   `(doall (for [~@for-binds]
-             (let [lex# (select-keys (lexical-context) (map (fn [k] `(quote ~(symbol (name k)))) ~env-syms))]
-               (evil lex# ~body))))))
-
-(defn capture [binds body]
-  (let [bind-syms (filter symbol? (flatten binds))
-        body-syms (filter symbol? (flatten body))]
-    (cap (concat bind-syms body-syms) binds body)))
+(defmacro print-each [bind body]
+  `(doall (interpose "\n" (for [~@bind] ~body))))
 
 (defn render*
   [html pfn]
@@ -46,56 +38,31 @@
 
 (defn read-content [content]
   (loop [in-strs []
-         [cur :as rem] content
+         [cur & rem] content
          tags {}]
-    (if rem
+    (if cur
       (if (map? cur)
-        (let [sym (gensym "turtle__eval")]
-          (recur (conj in-strs (name sym))
-                 (next rem)
-                 (assoc tags sym (update-in cur [:content] read-content))))
+        (let [tag-sym (gensym "__turtle__tag__")]
+          (recur (conj in-strs `(~tag-sym ~(read-content (:content cur))))
+                 rem
+                 (assoc tags tag-sym (assoc cur :content nil))))
         (recur (conj in-strs cur)
-               (next rem)
+               rem
                tags))
       (let [body-forms (read-string (s/join " " in-strs))]
         (if (empty? tags)
           body-forms
-          `(let [{:syms [~@(keys tags)]} '~tags]
-            ~body-forms))))))
+          (letfn [(tag-fn [[fn-name tag]]
+                    `(~fn-name [~'c] (assoc ~tag :content ~'c)))]
+            `(letfn [~@(map tag-fn tags)]
+               ~body-forms)))))))
 
 (defn eval-and-replace [{content :content :as tag}]
-  (let [body-form (read-content content)]
-    (eval body-form)))
-
-(comment "Old definition"
-  (defn eval-and-replace [{content-seq :content {for-binding :for if-binding :if} :attrs :as tag}]
-    (when (seq content-seq)
-      (cond
-        if-binding
-        (when (eval (read-string if-binding))
-          (eval-and-replace (update-in tag [:attrs] dissoc :if)))
-        for-binding
-        (let [bind-form (read-string for-binding)
-              bind-contexts (eval `(for ~(read-string for-binding) (lex/context)))
-              needed-syms (set (filter symbol? (flatten bind-form)))]
-          (letfn [(gen-tags [scope cseq]
-                    (mapv (fn [node]
-                            (if (map? node)
-                              (update-in node [:content] (partial gen-tags scope))
-                              (eval-body scope node)))
-                          cseq))
-                  (eval-body [scope body-str]
-                    (s/replace body-str turtle-re
-                               (fn [[_ body]]
-                                 (let [forms (read-string body)
-                                       true-scope (select-keys scope
-                                                               (apply (partial conj needed-syms)
-                                                                      (filter symbol? (flatten forms))))]
-                                   (evil true-scope forms)))))]
-            (flatten (mapv #(gen-tags % content-seq) bind-contexts))))
-        :else
-        (let [form (read-string (apply str content-seq))]
-          (str (eval form)))))))
+  (let [body-form (read-content content)
+        final-form (eval body-form)]
+    (if (coll? final-form)
+      final-form
+      (list final-form))))
 
 (defn munge-html [file]
   (let [html (html-resource file)

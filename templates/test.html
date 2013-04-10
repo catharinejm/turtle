@@ -11,9 +11,12 @@
 </div>
 
 <clj>
-(capture [user users]
+(print-each [user users]
   <p>(:name user)</p>)
 </clj>
 
+<clj>
+(doall (for [n (range) :while (< n 10)] (str n " ")))
+</clj>
 </body>
 </html>
