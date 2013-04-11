@@ -12,11 +12,15 @@
 
 <clj>
 (print-each [user users]
-  <p>(:name user)</p>)
+  <p>(:name user)</p>
+  (when-let [{h :hobbies} user]
+    <h1>"Hobbies:"</h1>
+    (print-each [h (:hobbies user)]
+      <p>h</p>)))
 </clj>
 
 <clj>
-(doall (for [n (range) :while (< n 10)] (str n " ")))
+(print-each [n (range) :while (< n 10)] <div>n</div>)
 </clj>
 </body>
 </html>

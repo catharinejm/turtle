@@ -7,8 +7,8 @@
 (def val "Value!")
 (defmacro silly-macro [n]
   `(* ~n 2))
-(def users [{:name "Bill"}
-            {:name "Timmy"}
+(def users [{:name "Bill" :hobbies ["food" "turtles" "bats"]}
+            {:name "Timmy" :hobbies ["nosepicking"]}
             {:name "Buttpants"}])
 
 ; Thanks to Fogus & Alan Dipert
@@ -21,8 +21,9 @@
 (defn qsym [s]
   `(quote ~s))
 
-(defmacro print-each [bind body]
-  `(doall (interpose "\n" (for [~@bind] ~body))))
+(defmacro print-each [bind & forms]
+  `(let [outputs# (reduce concat (doall (for [~@bind] (list ~@forms))))]
+     (doall (flatten (interpose "\n" outputs#)))))
 
 (defn render*
   [html pfn]
@@ -35,6 +36,11 @@
      (render* html (partial spit file))))
 
 (def ^:private turtle-re #"\(\{(.*?)\}\)")
+
+(defn as-coll [form]
+  (if (coll? form)
+    form
+    (list form)))
 
 (defn read-content [content]
   (loop [in-strs []
@@ -53,16 +59,13 @@
         (if (empty? tags)
           body-forms
           (letfn [(tag-fn [[fn-name tag]]
-                    `(~fn-name [~'c] (assoc ~tag :content ~'c)))]
+                    `(~fn-name [~'c] (assoc ~tag :content (as-coll ~'c))))]
             `(letfn [~@(map tag-fn tags)]
                ~body-forms)))))))
 
 (defn eval-and-replace [{content :content :as tag}]
-  (let [body-form (read-content content)
-        final-form (eval body-form)]
-    (if (coll? final-form)
-      final-form
-      (list final-form))))
+  (let [body-form (read-content content)]
+    (as-coll (eval body-form))))
 
 (defn munge-html [file]
   (let [html (html-resource file)
