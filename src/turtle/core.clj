@@ -1,8 +1,6 @@
 (ns turtle.core
-  (:use net.cgrand.enlive-html
-        [evalive.core :only (evil)])
-  (:require [clojure.string :as s]
-            [fogus.lexical.chocolate :as lex]))
+  (:use net.cgrand.enlive-html)
+  (:require [clojure.string :as s]))
 
 (def val "Value!")
 (defmacro silly-macro [n]
@@ -11,15 +9,6 @@
             {:name "Timmy" :hobbies ["nosepicking"]}
             {:name "Buttpants"}])
 
-; Thanks to Fogus & Alan Dipert
-(defmacro lexical-context []
-  (let [symbols (keys &env)]
-    (zipmap (map (fn [sym] `(quote ~sym))
-                 symbols)
-            symbols)))
-
-(defn qsym [s]
-  `(quote ~s))
 
 (defmacro print-each [bind & forms]
   `(let [outputs# (reduce concat (doall (for [~@bind] (list ~@forms))))]
