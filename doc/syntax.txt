@@ -1,0 +1,31 @@
+.section
+  - (doseq [u users]
+    %p= (:name u)
+    %h3 Hobbies
+    %ul
+      - (doseq [h (:hobbies u)]
+        %li= h
+
+<div class="section">
+  <% (doseq [u users] %>
+    <p><%= (:name u) %></p>
+    <h3>Hobbies</h3>
+    <ul>
+      <% (doseq [h (:hobbies u)] %>
+        <li><%= h %></li>
+      <% ) %>
+    </ul>
+  <% ) %>
+</div>
+
+<div class="section">
+  <clj>
+    (print-each [u users]
+      <p>(:name u)</p>
+      <h3>"Hobbies"</h3>
+      <ul>
+        (print-each [h (:hobbies u)]
+          <li>h</li>)
+      </ul>)
+  </clj>
+</div>

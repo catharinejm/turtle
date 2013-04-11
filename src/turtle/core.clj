@@ -9,14 +9,20 @@
             {:name "Timmy" :hobbies ["nosepicking"]}
             {:name "Buttpants"}])
 
+(defn as-coll [form]
+  (if (coll? form)
+    form
+    (list form)))
+
+(defn capture [& forms]
+  (interleave forms (repeat "\n")))
 
 (defmacro print-each [bind & forms]
-  `(let [outputs# (reduce concat (doall (for [~@bind] (list ~@forms))))]
-     (doall (flatten (interpose "\n" outputs#)))))
+  `(flatten (for [~@bind] (capture ~@forms))))
 
 (defn render*
   [html pfn]
-  (pfn (apply str (emit* html))))
+  (pfn (s/join (emit* html))))
 
 (defn render
   ([html]
@@ -25,11 +31,6 @@
      (render* html (partial spit file))))
 
 (def ^:private turtle-re #"\(\{(.*?)\}\)")
-
-(defn as-coll [form]
-  (if (coll? form)
-    form
-    (list form)))
 
 (defn read-content [content]
   (loop [in-strs []

@@ -13,14 +13,19 @@
 <clj>
 (print-each [user users]
   <p>(:name user)</p>
-  (when-let [{h :hobbies} user]
-    <h1>"Hobbies:"</h1>
-    (print-each [h (:hobbies user)]
-      <p>h</p>)))
+  (when-let [h (:hobbies user)]
+    (capture
+      <h1>"Hobbies:"</h1>
+      (print-each [h (:hobbies user)]
+        <p>h</p>))))
 </clj>
 
 <clj>
-(print-each [n (range) :while (< n 10)] <div>n</div>)
+(if true
+  (capture <p>"hello"</p> 10
+   (if true
+     42))
+  "something else")
 </clj>
 </body>
 </html>
