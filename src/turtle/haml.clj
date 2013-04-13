@@ -19,8 +19,35 @@
 
 (def nest-width 2)
 
+(def tag-end-delims #{\{ \( \space})
+(defn tag-chr? [c] (not (tag-end-delims c)))
+
 (defn get-tag [line]
-  (vector line))
+  (let [[tag rem] (split-with tag-chr? line)]
+    (cond
+      (= (first tag) \%)
+      [(apply str (rest tag)) rem]
+      (#{\# \.} (first tag))
+      [(apply str "div" tag) rem]
+      :otherwise [nil line])))
+
+(defn get-attrs [line]
+  (if (= (first line) \{)
+    (let [[attr-chrs rem] (split-with #(not= \} %) line)]
+      (try
+        (let [attr-map (read-string (str (apply str attr-chrs) (first rem)))]
+          [attr-map (rest rem)])
+        (catch RuntimeException e
+          (throw (exception (str "Invalid attribute map - \"" line "\""))))))
+    [nil line]))
+
+(defn build-element [line]
+  (let [line (str/trim line)
+        [tag line] (get-tag line)
+        [attrs line] (get-attrs line)]
+    (if tag
+      (vector tag attrs (apply str line))
+      (apply str line))))
 
 (defn get-level [line]
   (if (seq line)
@@ -40,31 +67,30 @@
            (< to from))))
 
 (defn parse-level [lines level]
-  (loop [[cur :as lines] lines
-         tags []]
+  (loop [tags []
+         [cur :as lines] lines]
+    (println "Line: " cur)
+    (println "Level: " level)
+    (println "Tags: " tags)
     (if cur
       (let [new-level (get-level cur)]
         (if-not (valid-nest? level new-level)
           (throw (exception (str "Invalid nesting - \"" (first rem) "\"")))
           (cond
             (= new-level level)
-            (recur (next lines)
-                   (conj tags (get-tag cur)))
+            (recur (conj tags (build-element cur))
+                   (next lines))
             (> new-level level)
-            (let [[rem next-tags] (parse-level lines new-level)]
-              (recur rem
-                     (conj tags (into (vlast tags) next-tags))))
+            (let [[next-tags rem] (parse-level lines new-level)]
+              (recur (update-in tags [(dec (count tags))] into next-tags)
+                     rem))
             (< new-level level)
-            [lines tags])))
-      [nil tags])))
+            [tags lines])))
+      [tags nil])))
 
 (defn parse-lines
-  ([lines]
-     (parse-lines :html5 lines))
-  ([dtd lines]
-     #_(html (doctype dtd)
-             (parse-level lines 0))
-     (parse-level lines 0)))
+  [lines]
+  (apply #(html %&) (first (parse-level (filter (complement str/blank?) lines) 0))))
 
 (defn read-file [file]
   (let [lines (str/split-lines (slurp file))]
