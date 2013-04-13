@@ -29,3 +29,31 @@
       </ul>)
   </clj>
 </div>
+
+- (if true
+  = (capture
+    %p hello
+    10
+    = (if true
+      42
+  "something else"
+
+%table
+  %thead
+    %tr
+      %th Name
+      %th Birthday
+  %tbody
+    = (print-each [{:keys [name birthday]} users]
+      %tr
+        %td name
+        %td birthday
+
+= (print-each [user users]
+  %p (:name user)
+  (when-let [h (:hobbies user)]
+    (capture
+      %h1! Hobbies:
+      (print-each [h h]
+        %p h
+  
