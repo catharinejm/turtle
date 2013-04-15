@@ -43,11 +43,34 @@
     %tr
       %th Name
       %th Birthday
+      %th Actions
   %tbody
-    = (print-each [{:keys [name birthday]} users]
-      %tr
-        %td name
-        %td birthday
+    = (print-each [{:keys [name birthday] :as user} users]
+      (when birthday
+        %tr
+          %td name
+          %td birthday
+          %td (link-to "Edit" (edit-path user))
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Birthday</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <clj>
+      (print-each [{:keys [name birthday] :as user} users]
+        <tr>
+          <td>name</td>
+          <td>birthday</td>
+          <td>(link-to "Edit" (edit-path user))</td>
+        </tr>)
+    </clj>
+  </tbody>
+</table>
 
 = (print-each [user users]
   %p (:name user)
