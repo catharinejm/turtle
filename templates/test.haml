@@ -6,6 +6,15 @@
   turtles
   %p#id.class{:rel "Facemaster"}
     I am a paragraph!!
+
 (for [user users]
   %p (:name user)
 
+(for [user users]
+  (list
+    %p (:name user)
+    (when-let [h (:hobbies user)]
+      (list
+        %h1 Hobbies:
+        (for [h h]
+          %p #h

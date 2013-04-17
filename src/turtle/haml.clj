@@ -103,7 +103,9 @@
     (let [[str-part form-part] (split-out-forms line)
           string (apply str str-part)
           [form rem] (parse-form form-part)]
-      (list* string form (parse-line rem)))))
+      (if (str/blank? string)
+        (cons form (parse-line rem))
+        (list* string form (parse-line rem))))))
 
 (defn build-element [line]
   (let [line (str/trim line)
