@@ -1,6 +1,7 @@
 (ns turtle.demo
   (:use [turtle.core :only (render munge-html print-each capture)]
-        [turtle.haml :only (read-file)])
+        [turtle.haml :only (read-file)]
+        [clojure.java.shell :only (sh)])
   (:require [clojure.string :as s]))
 
 (def value "Value!")
@@ -23,3 +24,7 @@
 (defn haml-demo []
   (demo "test.haml"
         #(println (read-file "templates/test.haml"))))
+
+(defn tidy-haml-demo []
+  (demo "test.haml"
+        #(println (:out (sh "tidy" "-indent" :in (read-file "templates/test.haml"))))))
