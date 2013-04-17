@@ -3,6 +3,11 @@
         [hiccup.page :only (doctype) :rename {doctype doctype-map}])
   (:require [clojure.string :as str]))
 
+(def bob "Bob")
+(def users [{:name "Bill" :hobbies ["food" "turtles" "bats"]}
+            {:name "Timmy" :hobbies ["nosepicking"]}
+            {:name "Buttpants"}])
+
 (defn exception
   ([^String msg]
      (proxy [RuntimeException] [^String msg]))
@@ -43,13 +48,71 @@
           (throw (exception "Invalid attribute map" (apply str line))))))
     [nil line]))
 
+(defn- clj-whitespace? [c]
+  (or (Character/isWhitespace c)
+      (= c \,)))
+
+(defn pb-str-reader [s]
+  (java.io.PushbackReader. (java.io.StringReader. s)))
+
+(defn split-out-forms [line]
+  (letfn [(split [s]
+            (split-with (complement #{\# \(}) s))
+          (escape [s form]
+            (if (and (not (str/blank? (apply str form)))
+                     (= (last s) \\))
+              (let [[s* f] (split form)]
+                (escape (concat (butlast s) s*)
+                        f))
+              (if (= (first form) \#)
+                [s (rest form)]
+                [s form])))]
+    (apply escape (split line))))
+
+(defn parse-form [form-chr]
+  (letfn [(new-reader [chrs]
+            (java.io.PushbackReader.
+             (java.io.CharArrayReader. (char-array chrs))))
+          (bleed-reader [rdr len]
+            (let [chary (char-array len)]
+              (.read rdr chary)
+              (apply str (take-while #(not= (int %) 0) chary))))
+          (read-nested [rdr]
+            (loop [forms []]
+              (let [form (try
+                           (read rdr)
+                           (catch RuntimeException e))]
+                (if form
+                  (recur (conj forms form))
+                  (list* forms)))))]
+    (let [reader (new-reader form-chr)]
+      (try
+        (let [form (read reader)
+              rest (bleed-reader reader (count form-chr))]
+          [form rest])
+        (catch RuntimeException e
+          (let [fc (rest form-chr)
+                reader (new-reader fc)
+                form (read-nested reader)
+                rest (bleed-reader reader (count fc))]
+            [form rest]))))))
+
+(defn parse-line [line]
+  (if (str/blank? (apply str line))
+    (list)
+    (let [[str-part form-part] (split-out-forms line)
+          string (apply str str-part)
+          [form rem] (parse-form form-part)]
+      (list* string form (parse-line rem)))))
+
 (defn build-element [line]
   (let [line (str/trim line)
         [tag line] (get-tag line)
-        [attrs line] (get-attrs line)]
+        [attrs line] (get-attrs line)
+        line (apply str line)]
     (if tag
-      (vector tag attrs (apply str line))
-      (apply str line))))
+      (list (into [tag attrs] (parse-line line)))
+      (parse-line line))))
 
 (defn get-level [line]
   (if (seq line)
@@ -73,6 +136,11 @@
     (str " " tag)
     tag))
 
+(defn append-elements [parent children]
+  (if (vector? parent)
+    (into parent children)
+    (concat parent children)))
+
 (defn parse-level [lines level]
   (loop [tags []
          [cur :as lines] lines]
@@ -82,11 +150,11 @@
           (throw (exception "Invalid nesting" (apply str cur)))
           (cond
             (= new-level level)
-            (recur (conj tags (build-element cur))
+            (recur (into tags (build-element cur))
                    (next lines))
             (> new-level level)
             (let [[next-tags rem] (parse-level lines new-level)]
-              (recur (update-in tags [(dec (count tags))] into (map spacify-content next-tags))
+              (recur (update-in tags [(dec (count tags))] append-elements (map spacify-content next-tags))
                      rem))
             (< new-level level)
             [tags lines])))
@@ -101,7 +169,7 @@
     (if-not (zero? (get-level (first lines)))
       (throw (exception "Invalid nesting - First line is indented."))
       (let [[tags] (parse-level lines 0)]
-        (html doctype (seq tags))))))
+        (html doctype (eval `(seq ~tags)))))))
 
 (defn read-file [file]
     (let [lines (str/split-lines (slurp file))]
