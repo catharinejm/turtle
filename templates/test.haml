@@ -5,6 +5,7 @@
     #demo-1
       %p.plain I am paragraph
       =value
+      %p#id.class{:style "oh yeah"}
       %p (s/join ", " [1 2 3])
       (silly-macro 2)
     
@@ -24,3 +25,6 @@
         (if true
           42
       should not see me
+    
+    \(parens)
+    \=has equals

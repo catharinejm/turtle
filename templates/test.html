@@ -3,9 +3,10 @@
 <head></head>
 <body>
 
-<div>
-  <p>I am paragraph</p>
+<div id="demo-1">
+  <p class="plain">I am paragraph</p>
   <clj>value</clj>
+  <p id="id" class="class" style="oh yeah"></p>
   <p><clj> (s/join ", " [1 2 3]) </clj></p>
   <clj>(silly-macro 2)</clj>
 </div>
@@ -27,5 +28,8 @@
      42))
   "should not see me")
 </clj>
+
+(parens)
+=has equals
 </body>
 </html>

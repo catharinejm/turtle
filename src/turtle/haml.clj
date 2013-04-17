@@ -56,8 +56,9 @@
           (escape [s form]
             (if (and (not (str/blank? (apply str form)))
                      (= (last s) \\))
-              (let [[s* f] (split form)]
-                (escape (concat (butlast s) s*)
+              (let [[s* f] (split (rest form))]
+                (escape (concat (butlast s)
+                                (cons (first form) s*))
                         f))
               (if (= (first form) \=)
                 [s (rest form)]
