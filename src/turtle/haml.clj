@@ -3,11 +3,6 @@
         [hiccup.page :only (doctype) :rename {doctype doctype-map}])
   (:require [clojure.string :as str]))
 
-(def bob "Bob")
-(def users [{:name "Bill" :hobbies ["food" "turtles" "bats"]}
-            {:name "Timmy" :hobbies ["nosepicking"]}
-            {:name "Buttpants"}])
-
 (defn exception
   ([^String msg]
      (proxy [RuntimeException] [^String msg]))
@@ -57,14 +52,14 @@
 
 (defn split-out-forms [line]
   (letfn [(split [s]
-            (split-with (complement #{\# \(}) s))
+            (split-with (complement #{\= \(}) s))
           (escape [s form]
             (if (and (not (str/blank? (apply str form)))
                      (= (last s) \\))
               (let [[s* f] (split form)]
                 (escape (concat (butlast s) s*)
                         f))
-              (if (= (first form) \#)
+              (if (= (first form) \=)
                 [s (rest form)]
                 [s form])))]
     (apply escape (split line))))
@@ -102,10 +97,12 @@
     (list)
     (let [[str-part form-part] (split-out-forms line)
           string (apply str str-part)
-          [form rem] (parse-form form-part)]
-      (if (str/blank? string)
-        (cons form (parse-line rem))
-        (list* string form (parse-line rem))))))
+          [form rem] (parse-form form-part)
+          line-parts (filter #(if (string? %)
+                                (not (str/blank? %))
+                                (not (nil? %)))
+                             [string form])]
+      (concat line-parts (parse-line rem)))))
 
 (defn build-element [line]
   (let [line (str/trim line)

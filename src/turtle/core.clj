@@ -2,13 +2,6 @@
   (:use net.cgrand.enlive-html)
   (:require [clojure.string :as s]))
 
-(def val "Value!")
-(defmacro silly-macro [n]
-  `(* ~n 2))
-(def users [{:name "Bill" :hobbies ["food" "turtles" "bats"]}
-            {:name "Timmy" :hobbies ["nosepicking"]}
-            {:name "Buttpants"}])
-
 (defn as-coll [form]
   (if (coll? form)
     form
@@ -29,8 +22,6 @@
      (render* html println))
   ([html file]
      (render* html (partial spit file))))
-
-(def ^:private turtle-re #"\(\{(.*?)\}\)")
 
 (defn read-content [content]
   (loop [in-strs []

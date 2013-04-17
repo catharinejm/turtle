@@ -1,20 +1,26 @@
 !!!
-.foo
-  bar
-  .baz{:style "you-know-it"} Pooooop
-  quux
-  turtles
-  %p#id.class{:rel "Facemaster"}
-    I am a paragraph!!
-
-(for [user users]
-  %p (:name user)
-
-(for [user users]
-  (list
-    %p (:name user)
-    (when-let [h (:hobbies user)]
+%html
+  %head
+  %body
+    #demo-1
+      %p.plain I am paragraph
+      =value
+      %p (s/join ", " [1 2 3])
+      (silly-macro 2)
+    
+    (for [user users]
       (list
-        %h1 Hobbies:
-        (for [h h]
-          %p #h
+        %p (:name user)
+        (when-let [h (:hobbies user)]
+          (list
+            %h1 Hobbies:
+            (for [h h]
+              %p =h
+    
+    (if true
+      (list
+        %p hello
+        10
+        (if true
+          42
+      should not see me
