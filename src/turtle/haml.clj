@@ -21,7 +21,7 @@
 
 (def nest-width 2)
 
-(def tag-end-delims #{\{ \( \space})
+(def tag-end-delims #{\{ \( \space \=})
 (defn tag-chr? [c] (not (tag-end-delims c)))
 
 (defn get-tag [line]
@@ -42,13 +42,6 @@
         (catch RuntimeException e
           (throw (exception "Invalid attribute map" (apply str line))))))
     [nil line]))
-
-(defn- clj-whitespace? [c]
-  (or (Character/isWhitespace c)
-      (= c \,)))
-
-(defn pb-str-reader [s]
-  (java.io.PushbackReader. (java.io.StringReader. s)))
 
 (defn split-out-forms [line]
   (letfn [(split [s]
@@ -156,11 +149,10 @@
             (let [[next-tags rem] (parse-level lines new-level)]
               (recur (update-in tags [(dec (count tags))] append-elements (map spacify-content next-tags))
                      rem))
-            (< new-level level)
-            [tags lines])))
+            :otherwise [tags lines])))
       [tags nil])))
 
-(defn parse-lines
+(defn build-tags
   [lines]
   (let [lines (filter (complement str/blank?) lines)
         doctype-str (re-find #"^!!!" (first lines))
@@ -169,8 +161,9 @@
     (if-not (zero? (get-level (first lines)))
       (throw (exception "Invalid nesting - First line is indented."))
       (let [[tags] (parse-level lines 0)]
-        (html doctype (eval `(seq ~tags)))))))
+        [doctype tags]))))
 
 (defn read-file [file]
-    (let [lines (str/split-lines (slurp file))]
-      (parse-lines lines)))
+  (let [lines (str/split-lines (slurp file))
+        [doctype tags] (build-tags lines)]
+    (html doctype (eval `(seq ~tags)))))
